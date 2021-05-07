@@ -109,7 +109,7 @@ def add_comment(request, username, post_id):
             comment.author = request.user
             comment.post = post
             comment.save()
-            return redirect('post', username=username, post_id=post_id)
+    return redirect('post', username=username, post_id=post_id)
 
 
 def page_not_found(request, exception):
@@ -141,7 +141,9 @@ def profile_follow(request, username):
         follow = Follow()
         follow.user = request.user
         follow.author = get_object_or_404(User, username=username)
-        follow.save()
+        if not Follow.objects.filter(user=request.user,
+                                     author=follow.author).exists():
+            follow.save()
     return redirect('follow_index')
 
 
