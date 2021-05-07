@@ -32,6 +32,7 @@ def group_posts(request, slug):
     )
 
 
+@login_required
 def profile(request, username):
     user = get_object_or_404(User, username=username)
     posts = Post.objects.filter(author=user)
