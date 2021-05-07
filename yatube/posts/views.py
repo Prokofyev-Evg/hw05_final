@@ -3,7 +3,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 
-from .models import Post, Group, User, Comment, Follow
+from .models import Post, Group, User, Follow
 from .forms import PostForm, CommentForm
 
 
@@ -83,7 +83,10 @@ def post_edit(request, username, post_id):
     post = get_object_or_404(Post, pk=post_id, author__username=username)
     if request.user != post.author:
         return redirect('post', username=username, post_id=post_id)
-    form = PostForm(request.POST or None, files=request.FILES or None, instance=post)
+    form = PostForm(
+        request.POST or None,
+        files=request.FILES or None,
+        instance=post)
     if form.is_valid():
         form.save()
         return redirect(
@@ -111,15 +114,16 @@ def add_comment(request, username, post_id):
 
 def page_not_found(request, exception):
     return render(
-        request, 
-        "misc/404.html", 
-        {"path": request.path}, 
+        request,
+        "misc/404.html",
+        {"path": request.path},
         status=404
     )
 
 
 def server_error(request):
-    return render(request, "misc/500.html", status=500) 
+    return render(request, "misc/500.html", status=500)
+
 
 @login_required
 def follow_index(request):
@@ -129,6 +133,7 @@ def follow_index(request):
     page_number = request.GET.get('page')
     page = paginator.get_page(page_number)
     return render(request, "follow.html", {'page': page})
+
 
 @login_required
 def profile_follow(request, username):
@@ -143,5 +148,5 @@ def profile_follow(request, username):
 def profile_unfollow(request, username):
     user = request.user
     author = get_object_or_404(User, username=username)
-    Follow.objects.filter(user=user,author=author).delete()
+    Follow.objects.filter(user=user, author=author).delete()
     return redirect('follow_index')

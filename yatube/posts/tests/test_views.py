@@ -4,7 +4,7 @@ from django.urls import reverse
 from django import forms
 from django.core.cache import cache
 
-from posts.models import Post, Group, User, Follow, Comment
+from ..models import Post, Group, User, Follow, Comment
 
 
 class PostPagesTests(TestCase):
@@ -120,7 +120,6 @@ class PostPagesTests(TestCase):
         self.assertEqual(post_object.author, self.user)
         self.assertEqual(post_object.text, self.post.text)
         self.assertEqual(post_object.group, self.post.group)
-        #self.assertEqual(post_object.image, self.post.image)
 
     def test_cache(self):
         index_page = self.authorized_client.get(reverse('index')).content
@@ -137,21 +136,21 @@ class PostPagesTests(TestCase):
         client.force_login(follower)
         response = client.get(
             reverse(
-                'profile', 
+                'profile',
                 kwargs={'username': self.user.username}
             )
         )
         self.assertContains(
-            response, 
+            response,
             reverse(
-                'profile_follow', 
+                'profile_follow',
                 kwargs={'username': self.user.username}
             )
         )
         self.assertNotContains(
-            response, 
+            response,
             reverse(
-                'profile_unfollow', 
+                'profile_unfollow',
                 kwargs={'username': self.user.username}
             )
         )
@@ -159,12 +158,12 @@ class PostPagesTests(TestCase):
         # Check follow function
         response = client.get(
             reverse(
-                'profile_follow', 
+                'profile_follow',
                 kwargs={'username': self.user.username}
             )
         )
         self.assertTrue(Follow.objects.filter(
-            user=follower, 
+            user=follower,
             author=self.user
         ).exists())
         response = client.get(reverse('follow_index'))
@@ -173,12 +172,12 @@ class PostPagesTests(TestCase):
         # Check unfollow function
         response = client.get(
             reverse(
-                'profile_unfollow', 
+                'profile_unfollow',
                 kwargs={'username': self.user.username}
             )
         )
         self.assertFalse(Follow.objects.filter(
-            user=follower, 
+            user=follower,
             author=self.user
         ).exists())
         response = client.get(reverse('follow_index'))
@@ -190,9 +189,9 @@ class PostPagesTests(TestCase):
         comment = 'Hello, world!'
 
         # Check nonauthorized user cannot comment posts
-        response = client.post(
+        client.post(
             reverse(
-                'add_comment', 
+                'add_comment',
                 kwargs={
                     'username': self.user.username,
                     'post_id': self.post.id
@@ -202,17 +201,17 @@ class PostPagesTests(TestCase):
         )
         self.assertFalse(
             Comment.objects.filter(
-                post=self.post, 
-                author=commentator, 
+                post=self.post,
+                author=commentator,
                 text=comment
             ).exists()
         )
 
         # Check authorized user can comment posts
         client.force_login(commentator)
-        response = client.post(
+        client.post(
             reverse(
-                'add_comment', 
+                'add_comment',
                 kwargs={
                     'username': self.user.username,
                     'post_id': self.post.id
@@ -222,8 +221,8 @@ class PostPagesTests(TestCase):
         )
         self.assertTrue(
             Comment.objects.filter(
-                post=self.post, 
-                author=commentator, 
+                post=self.post,
+                author=commentator,
                 text=comment
             ).exists()
         )
