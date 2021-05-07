@@ -32,7 +32,6 @@ def group_posts(request, slug):
     )
 
 
-@login_required
 def profile(request, username):
     user = get_object_or_404(User, username=username)
     posts = Post.objects.filter(author=user)
@@ -40,6 +39,10 @@ def profile(request, username):
     page_number = request.GET.get('page')
     page = paginator.get_page(page_number)
     follow = Follow.objects.all()
+    if request.user.is_authenticated:
+        following = follow.filter(user=request.user, author=user).exists()
+    else:
+        following = False
     profile = {
         'author': user,
         'following': follow.filter(user=user).count(),
@@ -47,7 +50,7 @@ def profile(request, username):
     }
     context = {
         'page': page,
-        'following': follow.filter(user=request.user, author=user).exists(),
+        'following': following,
         'profile': profile
     }
     return render(request, 'profile.html', context)
