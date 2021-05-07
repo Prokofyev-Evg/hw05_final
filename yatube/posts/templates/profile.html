@@ -3,16 +3,16 @@
 {% block content %}
 <main role="main" class="container">
   <div class="row">
-    {% include "include/user_info.html" with profile=profile %}
+    {% include "include/user_info.html" with profile=profile author=author%}
     <li class="list-group-item">
       {% if following %}
       <a class="btn btn-lg btn-light" 
-        href="{% url 'profile_unfollow' profile.author.username %}" role="button"> 
+        href="{% url 'profile_unfollow' author.username %}" role="button"> 
         Отписаться 
       </a> 
       {% else %}
       <a class="btn btn-lg btn-primary" 
-        href="{% url 'profile_follow' profile.author.username %}" role="button">
+        href="{% url 'profile_follow' author.username %}" role="button">
         Подписаться 
       </a>
       {% endif %}

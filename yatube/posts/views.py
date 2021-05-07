@@ -44,12 +44,12 @@ def profile(request, username):
     else:
         following = False
     profile = {
-        'author': user,
         'following': follow.filter(user=user).count(),
         'followers': follow.filter(author=user).count(),
     }
     context = {
         'page': page,
+        'author': user,
         'following': following,
         'profile': profile
     }
