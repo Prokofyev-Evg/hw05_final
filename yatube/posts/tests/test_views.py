@@ -8,7 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.cache import cache
 from django import forms
 
-from ..models import Post, Group, User, Follow, Comment
+from ..models import Post, Group, User, Follow
 
 
 class PostPagesTests(TestCase):
@@ -147,7 +147,10 @@ class PostPagesTests(TestCase):
 
     def test_cache(self):
         index_page = self.authorized_client.get(reverse('index')).content
-        self.authorized_client.post(reverse('new_post'), {'text': 'Новый пост'})
+        self.authorized_client.post(
+            reverse('new_post'), 
+            {'text': 'Новый пост'}
+        )
         page_before = self.authorized_client.get(reverse('index')).content
         self.assertEqual(page_before, index_page)
         cache.clear()

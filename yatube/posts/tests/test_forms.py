@@ -68,7 +68,7 @@ class PostFormTests(TestCase):
             reverse('new_post'),
             data=self.form_data,
             follow=True
-        )             
+        )
         self.assertRedirects(
             response,
             f"{reverse('login')}?next={reverse('new_post')}"
@@ -124,9 +124,8 @@ class CommentFormTests(TestCase):
             author=cls.user,
             text="Test comment"
         )
-    
+
     def test_comments_nonauthorized(self):
-        commentator = User.objects.create_user(username='commentator')
         client = Client()
         comment = 'Hello, world!'
         comments_count = Comment.objects.count()
