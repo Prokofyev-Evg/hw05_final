@@ -5,11 +5,11 @@ from django.conf import settings
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
-from posts.forms import PostForm
-from posts.models import Group, Post, User
+from posts.forms import PostForm, CommentForm
+from posts.models import Group, Post, User, Comment
 
 
-class PostCreateFormTests(TestCase):
+class PostFormTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -17,22 +17,12 @@ class PostCreateFormTests(TestCase):
         cls.form = PostForm()
         cls.user = User.objects.create_user(username='leo')
         cls.authorized_client = Client()
-        cls.authorized_client.force_login(cls.user)
-
         cls.group = Group.objects.create(
             title="Тестовая группа",
             slug="test",
             description="Описание тестовой группы"
         )
-
-    @classmethod
-    def tearDownClass(cls):
-        shutil.rmtree(settings.MEDIA_ROOT, ignore_errors=True)
-        super().tearDownClass()
-
-    def test_create_post(self):
-        posts_count = Post.objects.count()
-        small_gif = (
+        cls.small_gif = (
             b'\x47\x49\x46\x38\x39\x61\x02\x00'
             b'\x01\x00\x80\x00\x00\x00\x00\x00'
             b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
@@ -40,30 +30,53 @@ class PostCreateFormTests(TestCase):
             b'\x02\x00\x01\x00\x00\x02\x02\x0C'
             b'\x0A\x00\x3B'
         )
-        uploaded = SimpleUploadedFile(
+        cls.uploaded = SimpleUploadedFile(
             name='small.gif',
-            content=small_gif,
+            content=cls.small_gif,
             content_type='image/gif'
         )
-        form_data = {
+        cls.form_data = {
             'text': 'Тестовый текст',
-            'group': self.group.id,
-            'image': uploaded,
+            'group': cls.group.id,
+            'image': cls.uploaded,
         }
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(settings.MEDIA_ROOT, ignore_errors=True)
+        super().tearDownClass()
+
+    def test_create_post_authorized(self):
+        posts_count = Post.objects.count()
+        self.authorized_client.force_login(self.user)
         response = self.authorized_client.post(
             reverse('new_post'),
-            data=form_data,
+            data=self.form_data,
             follow=True
         )
         post = Post.objects.last()
         self.assertRedirects(response, reverse('index'))
         self.assertEqual(Post.objects.count(), posts_count + 1)
-        self.assertEqual(post.text, form_data['text'])
+        self.assertEqual(post.text, self.form_data['text'])
         self.assertEqual(post.group, self.group)
         self.assertEqual(post.author, self.user)
         self.assertEqual(post.image, 'posts/small.gif')
 
+    def test_create_post_nonauthorized(self):
+        posts_count = Post.objects.count()
+        response = self.authorized_client.post(
+            reverse('new_post'),
+            data=self.form_data,
+            follow=True
+        )             
+        self.assertRedirects(
+            response,
+            f"{reverse('login')}?next={reverse('new_post')}"
+        )
+        self.assertEqual(Post.objects.count(), posts_count)
+
     def test_edit_post(self):
+        self.authorized_client.force_login(self.user)
         post = Post.objects.create(
             text='Текст поста',
             group=self.group,
@@ -88,3 +101,65 @@ class PostCreateFormTests(TestCase):
             'post_id': post.id
         }))
         self.assertEqual(post.text, new_form_data['text'])
+
+
+class CommentFormTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.comment = CommentForm()
+        cls.user = User.objects.create_user(username='author')
+        cls.group = Group.objects.create(
+            title="Тестовая группа",
+            slug="test",
+            description="Описание тестовой группы"
+        )
+        cls.post = Post.objects.create(
+            text='Заголовок тестового поста',
+            group=cls.group,
+            author=cls.user
+        )
+        cls.test_comment = Comment.objects.create(
+            post=cls.post,
+            author=cls.user,
+            text="Test comment"
+        )
+    
+    def test_comments_nonauthorized(self):
+        commentator = User.objects.create_user(username='commentator')
+        client = Client()
+        comment = 'Hello, world!'
+        comments_count = Comment.objects.count()
+        client.post(
+            reverse(
+                'add_comment',
+                kwargs={
+                    'username': self.user.username,
+                    'post_id': self.post.id
+                }
+            ),
+            {'text': comment}
+        )
+        last_comment = Comment.objects.last()
+        self.assertEqual(Comment.objects.count(), comments_count)
+        self.assertNotEqual(last_comment.text, comment)
+
+    def test_comments_authorized(self):
+        commentator = User.objects.create_user(username='commentator')
+        client = Client()
+        comment = 'Hello, world!'
+        client.force_login(commentator)
+        comments_count = Comment.objects.count()
+        client.post(
+            reverse(
+                'add_comment',
+                kwargs={
+                    'username': self.user.username,
+                    'post_id': self.post.id
+                }
+            ),
+            {'text': comment}
+        )
+        last_comment = Comment.objects.first()
+        self.assertEqual(Comment.objects.count(), comments_count + 1)
+        self.assertEqual(last_comment.text, comment)

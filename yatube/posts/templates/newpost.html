@@ -5,11 +5,13 @@
 {% load user_filters %}
 <div class="row justify-content-center">
   <div class="col-md-8 p-5">
-    {%if post  %}  
-      <h1>Редактировать пост</h1>
-    {%else%} 
-      <h1>Создание нового поста</h1>
-    {%endif%}          
+    <h1>
+      {%if post  %}  
+        Редактировать пост
+      {%else%} 
+        Создание нового поста
+      {%endif%}   
+    </h1>       
     <form method="post" enctype="multipart/form-data"
       {%if post %} action="{% url 'post_edit' post.author.username post.id  %}"
       {%else%}  action="{% url 'new_post' %}"

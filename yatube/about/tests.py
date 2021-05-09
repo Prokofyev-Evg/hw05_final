@@ -1,5 +1,6 @@
 from django.test import TestCase, Client
 from http import HTTPStatus
+from django.urls import reverse
 
 
 class AboutURLTests(TestCase):
@@ -11,8 +12,8 @@ class AboutURLTests(TestCase):
 
     def test_pages_access(self):
         urls_list = [
-            '/about/author/',
-            '/about/tech/',
+            reverse('about:author'),
+            reverse('about:tech'),
         ]
         for url in urls_list:
             with self.subTest(url=url):
@@ -21,8 +22,8 @@ class AboutURLTests(TestCase):
 
     def test_urls_uses_correct_template(self):
         templates_url_names = [
-            ('about/author.html', '/about/author/'),
-            ('about/tech.html', '/about/tech/')
+            ('about/author.html', reverse('about:author')),
+            ('about/tech.html', reverse('about:tech'))
         ]
         for template, reverse_name in templates_url_names:
             with self.subTest():

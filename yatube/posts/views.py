@@ -39,19 +39,13 @@ def profile(request, username):
     page_number = request.GET.get('page')
     page = paginator.get_page(page_number)
     follow = Follow.objects.all()
+    following = False
     if request.user.is_authenticated:
         following = follow.filter(user=request.user, author=user).exists()
-    else:
-        following = False
-    profile = {
-        'following': follow.filter(user=user).count(),
-        'followers': follow.filter(author=user).count(),
-    }
     context = {
         'page': page,
         'author': user,
         'following': following,
-        'profile': profile
     }
     return render(request, 'profile.html', context)
 
@@ -131,8 +125,8 @@ def server_error(request):
 
 @login_required
 def follow_index(request):
-    followers = request.user.follower
-    post_list = Post.objects.filter(author__in=followers.values('author'))
+    followings = request.user.following
+    post_list = Post.objects.filter(author__follower__user=request.user)
     paginator = Paginator(post_list, settings.PAGINATOR_PER_PAGE_VAL)
     page_number = request.GET.get('page')
     page = paginator.get_page(page_number)
@@ -141,12 +135,13 @@ def follow_index(request):
 
 @login_required
 def profile_follow(request, username):
+    author = get_object_or_404(User, username=username)
     if request.user.username != username:
-        follow = Follow()
-        follow.user = request.user
-        follow.author = get_object_or_404(User, username=username)
         if not Follow.objects.filter(user=request.user,
-                                     author=follow.author).exists():
+                                     author=author).exists():
+            follow = Follow()
+            follow.user = request.user
+            follow.author = author
             follow.save()
     return redirect('follow_index')
 

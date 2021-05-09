@@ -1,8 +1,12 @@
+import shutil
+import tempfile
+
 from django.conf import settings
 from django.test import TestCase, Client
 from django.urls import reverse
-from django import forms
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.cache import cache
+from django import forms
 
 from ..models import Post, Group, User, Follow, Comment
 
@@ -11,20 +15,39 @@ class PostPagesTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        settings.MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
         cls.user = User.objects.create_user(username='UserName')
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.user)
-
+        small_gif = (
+            b'\x47\x49\x46\x38\x39\x61\x02\x00'
+            b'\x01\x00\x80\x00\x00\x00\x00\x00'
+            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+            b'\x0A\x00\x3B'
+        )
+        uploaded = SimpleUploadedFile(
+            name='small.gif',
+            content=small_gif,
+            content_type='image/gif'
+        )
         cls.group = Group.objects.create(
             title="Тестовая группа",
             slug="test_group",
             description="Описание тестовой группы"
         )
         cls.post = Post.objects.create(
-            text='Заголовок тестовой задачи',
+            text='Заголовок тестового поста',
             group=cls.group,
             author=cls.user,
+            image=uploaded
         )
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(settings.MEDIA_ROOT, ignore_errors=True)
+        super().tearDownClass()
 
     def test_pages_use_correct_template(self):
         templates_pages_names = {
@@ -120,10 +143,11 @@ class PostPagesTests(TestCase):
         self.assertEqual(post_object.author, self.user)
         self.assertEqual(post_object.text, self.post.text)
         self.assertEqual(post_object.group, self.post.group)
+        self.assertEqual(post_object.image, self.post.image)
 
     def test_cache(self):
         index_page = self.authorized_client.get(reverse('index')).content
-        self.authorized_client.post('/new/', {'text': 'Новый пост'})
+        self.authorized_client.post(reverse('new_post'), {'text': 'Новый пост'})
         page_before = self.authorized_client.get(reverse('index')).content
         self.assertEqual(page_before, index_page)
         cache.clear()
@@ -147,14 +171,6 @@ class PostPagesTests(TestCase):
                 kwargs={'username': self.user.username}
             )
         )
-        self.assertNotContains(
-            response,
-            reverse(
-                'profile_unfollow',
-                kwargs={'username': self.user.username}
-            )
-        )
-
         # Check follow function
         response = client.get(
             reverse(
@@ -169,6 +185,30 @@ class PostPagesTests(TestCase):
         response = client.get(reverse('follow_index'))
         self.assertIn(self.post, response.context['page'])
 
+    def test_unfollow(self):
+        follower = User.objects.create_user(username='follower')
+        client = Client()
+        client.force_login(follower)
+        response = client.get(
+            reverse(
+                'profile_follow',
+                kwargs={'username': self.user.username}
+            )
+        )
+        response = client.get(
+            reverse(
+                'profile',
+                kwargs={'username': self.user.username}
+            )
+        )
+        self.assertContains(
+            response,
+            reverse(
+                'profile_unfollow',
+                kwargs={'username': self.user.username}
+            )
+        )
+
         # Check unfollow function
         response = client.get(
             reverse(
@@ -182,47 +222,3 @@ class PostPagesTests(TestCase):
         ).exists())
         response = client.get(reverse('follow_index'))
         self.assertNotIn(self.post, response.context['page'])
-
-    def test_comments(self):
-        commentator = User.objects.create_user(username='commentator')
-        client = Client()
-        comment = 'Hello, world!'
-
-        # Check nonauthorized user cannot comment posts
-        client.post(
-            reverse(
-                'add_comment',
-                kwargs={
-                    'username': self.user.username,
-                    'post_id': self.post.id
-                }
-            ),
-            {'text': comment}
-        )
-        self.assertFalse(
-            Comment.objects.filter(
-                post=self.post,
-                author=commentator,
-                text=comment
-            ).exists()
-        )
-
-        # Check authorized user can comment posts
-        client.force_login(commentator)
-        client.post(
-            reverse(
-                'add_comment',
-                kwargs={
-                    'username': self.user.username,
-                    'post_id': self.post.id
-                }
-            ),
-            {'text': comment}
-        )
-        self.assertTrue(
-            Comment.objects.filter(
-                post=self.post,
-                author=commentator,
-                text=comment
-            ).exists()
-        )
