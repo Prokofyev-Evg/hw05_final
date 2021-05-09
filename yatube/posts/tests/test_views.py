@@ -148,7 +148,7 @@ class PostPagesTests(TestCase):
     def test_cache(self):
         index_page = self.authorized_client.get(reverse('index')).content
         self.authorized_client.post(
-            reverse('new_post'), 
+            reverse('new_post'),
             {'text': 'Новый пост'}
         )
         page_before = self.authorized_client.get(reverse('index')).content
