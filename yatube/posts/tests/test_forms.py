@@ -5,7 +5,7 @@ from django.conf import settings
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
-from posts.forms import PostForm, CommentForm
+from posts.forms import PostForm
 from posts.models import Group, Post, User, Comment
 
 
@@ -136,7 +136,6 @@ class CommentFormTests(TestCase):
             ),
             {'text': comment}
         )
-        last_comment = Comment.objects.last()
         self.assertEqual(Comment.objects.count(), comments_count)
 
     def test_comments_authorized(self):

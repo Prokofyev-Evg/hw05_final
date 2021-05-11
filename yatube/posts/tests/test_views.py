@@ -162,7 +162,7 @@ class PostPagesTests(TestCase):
     def test_follow(self):
         follows_count = Follow.objects.count()
         self.client.force_login(self.follower)
-        response = self.client.get(
+        self.client.get(
             reverse(
                 'profile_follow',
                 kwargs={'username': self.user.username}
@@ -188,7 +188,7 @@ class PostPagesTests(TestCase):
         self.client.force_login(self.follower)
         Follow.objects.create(author=self.post.author, user=self.follower)
         follows_count = Follow.objects.count()
-        response = self.client.get(
+        self.client.get(
             reverse(
                 'profile_unfollow',
                 kwargs={'username': self.user.username}
