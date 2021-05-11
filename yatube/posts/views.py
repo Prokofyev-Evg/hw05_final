@@ -38,10 +38,10 @@ def profile(request, username):
     paginator = Paginator(posts, settings.PAGINATOR_PER_PAGE_VAL)
     page_number = request.GET.get('page')
     page = paginator.get_page(page_number)
-    follow = Follow.objects.all()
     following = False
     if request.user.is_authenticated:
-        following = follow.filter(user=request.user, author=user).exists()
+        following = Follow.objects.filter(
+            user=request.user, author=user).exists()
     context = {
         'page': page,
         'author': user,
@@ -88,7 +88,7 @@ def post_edit(request, username, post_id):
     if form.is_valid():
         form.save()
         return redirect(
-            "post",
+            'post',
             username=request.user.username,
             post_id=post_id
         )
@@ -113,14 +113,14 @@ def add_comment(request, username, post_id):
 def page_not_found(request, exception):
     return render(
         request,
-        "misc/404.html",
-        {"path": request.path},
+        'misc/404.html',
+        {'path': request.path},
         status=404
     )
 
 
 def server_error(request):
-    return render(request, "misc/500.html", status=500)
+    return render(request, 'misc/500.html', status=500)
 
 
 @login_required
@@ -129,19 +129,15 @@ def follow_index(request):
     paginator = Paginator(post_list, settings.PAGINATOR_PER_PAGE_VAL)
     page_number = request.GET.get('page')
     page = paginator.get_page(page_number)
-    return render(request, "follow.html", {'page': page})
+    return render(request, 'follow.html', {'page': page})
 
 
 @login_required
 def profile_follow(request, username):
     author = get_object_or_404(User, username=username)
-    if request.user.username != username:
-        if not Follow.objects.filter(user=request.user,
-                                     author=author).exists():
-            follow = Follow()
-            follow.user = request.user
-            follow.author = author
-            follow.save()
+    if request.user != author and not Follow.objects.filter(
+        user=request.user, author=author).exists():
+            Follow.objects.create(user=request.user, author=author)
     return redirect('follow_index')
 
 

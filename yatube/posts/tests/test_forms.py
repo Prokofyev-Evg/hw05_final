@@ -18,11 +18,11 @@ class PostFormTests(TestCase):
         cls.user = User.objects.create_user(username='leo')
         cls.authorized_client = Client()
         cls.group = Group.objects.create(
-            title="Тестовая группа",
-            slug="test",
-            description="Описание тестовой группы"
+            title='Тестовая группа',
+            slug='test',
+            description='Описание тестовой группы'
         )
-        cls.small_gif = (
+        small_gif = (
             b'\x47\x49\x46\x38\x39\x61\x02\x00'
             b'\x01\x00\x80\x00\x00\x00\x00\x00'
             b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
@@ -30,15 +30,15 @@ class PostFormTests(TestCase):
             b'\x02\x00\x01\x00\x00\x02\x02\x0C'
             b'\x0A\x00\x3B'
         )
-        cls.uploaded = SimpleUploadedFile(
+        uploaded = SimpleUploadedFile(
             name='small.gif',
-            content=cls.small_gif,
+            content=small_gif,
             content_type='image/gif'
         )
         cls.form_data = {
             'text': 'Тестовый текст',
             'group': cls.group.id,
-            'image': cls.uploaded,
+            'image': uploaded,
         }
 
     @classmethod
@@ -71,7 +71,7 @@ class PostFormTests(TestCase):
         )
         self.assertRedirects(
             response,
-            f"{reverse('login')}?next={reverse('new_post')}"
+            f'{reverse("login")}?next={reverse("new_post")}'
         )
         self.assertEqual(Post.objects.count(), posts_count)
 
@@ -83,7 +83,8 @@ class PostFormTests(TestCase):
             author=self.user
         )
         new_form_data = {
-            'text': 'Новый текст поста'
+            'text': 'Новый текст поста',
+            'group': self.form_data['group']
         }
         response = self.authorized_client.post(
             reverse(
@@ -101,28 +102,24 @@ class PostFormTests(TestCase):
             'post_id': post.id
         }))
         self.assertEqual(post.text, new_form_data['text'])
+        self.assertEqual(post.group, self.group)
+        self.assertEqual(post.author, self.user)
 
 
 class CommentFormTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.comment = CommentForm()
         cls.user = User.objects.create_user(username='author')
         cls.group = Group.objects.create(
-            title="Тестовая группа",
-            slug="test",
-            description="Описание тестовой группы"
+            title='Тестовая группа',
+            slug='test',
+            description='Описание тестовой группы'
         )
         cls.post = Post.objects.create(
             text='Заголовок тестового поста',
             group=cls.group,
             author=cls.user
-        )
-        cls.test_comment = Comment.objects.create(
-            post=cls.post,
-            author=cls.user,
-            text="Test comment"
         )
 
     def test_comments_nonauthorized(self):
@@ -141,7 +138,6 @@ class CommentFormTests(TestCase):
         )
         last_comment = Comment.objects.last()
         self.assertEqual(Comment.objects.count(), comments_count)
-        self.assertNotEqual(last_comment.text, comment)
 
     def test_comments_authorized(self):
         commentator = User.objects.create_user(username='commentator')
@@ -162,3 +158,5 @@ class CommentFormTests(TestCase):
         last_comment = Comment.objects.first()
         self.assertEqual(Comment.objects.count(), comments_count + 1)
         self.assertEqual(last_comment.text, comment)
+        self.assertEqual(last_comment.author, commentator)
+        self.assertEqual(last_comment.post, self.post)

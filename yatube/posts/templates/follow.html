@@ -3,7 +3,7 @@
 {% block header %}Лента новостей{% endblock %}
 {% block content %}
     <div class="container">
-        {% include "include/menu.html" with index=True %}
+        {% include "include/menu.html" with follow_index=True %}
         {% load cache %} 
         {% cache 20 index_page request.user.username %}
             {% for post in page %}

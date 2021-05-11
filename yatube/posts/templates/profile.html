@@ -3,7 +3,7 @@
 {% block content %}
 <main role="main" class="container">
   <div class="row">
-    {% include "include/user_info.html" with profile=profile author=author%}
+    {% include "include/user_info.html" with author=author%}
     <li class="list-group-item">
       {% if following %}
       <a class="btn btn-lg btn-light" 

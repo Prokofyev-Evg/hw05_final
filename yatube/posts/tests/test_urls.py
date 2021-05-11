@@ -17,9 +17,9 @@ class PostsURLTests(TestCase):
         cls.authorized_client.force_login(cls.user)
 
         cls.group = Group.objects.create(
-            title="Тестовая группа",
-            slug="test",
-            description="Описание тестовой группы"
+            title='Тестовая группа',
+            slug='test',
+            description='Описание тестовой группы'
         )
         cls.userpost = Post.objects.create(
             text='Заголовок тестового поста авторизованного пользователя',
@@ -73,7 +73,7 @@ class PostsURLTests(TestCase):
                 response = self.guest_client.get(url)
                 self.assertRedirects(
                     response,
-                    f"{reverse('login')}?next={url}"
+                    f'{reverse("login")}?next={url}'
                 )
 
     def test_edit_post_access_anonymous_users(self):

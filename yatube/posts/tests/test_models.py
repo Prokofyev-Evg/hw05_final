@@ -8,9 +8,9 @@ class PostsModelsTest(TestCase):
         super().setUpClass()
 
         cls.group = Group.objects.create(
-            title="Тестовая группа",
-            slug="test",
-            description="Описание тестовой группы"
+            title='Тестовая группа',
+            slug='test',
+            description='Описание тестовой группы'
         )
         cls.user = User.objects.create_user(username='Author')
         cls.post = Post.objects.create(
