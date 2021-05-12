@@ -5,7 +5,6 @@ from django.conf import settings
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
-from posts.forms import PostForm
 from posts.models import Group, Post, User, Comment
 
 
@@ -14,9 +13,9 @@ class PostFormTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         settings.MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
-        cls.form = PostForm()
         cls.user = User.objects.create_user(username='leo')
         cls.authorized_client = Client()
+        cls.authorized_client.force_login(cls.user)
         cls.group = Group.objects.create(
             title='Тестовая группа',
             slug='test',
@@ -30,16 +29,11 @@ class PostFormTests(TestCase):
             b'\x02\x00\x01\x00\x00\x02\x02\x0C'
             b'\x0A\x00\x3B'
         )
-        uploaded = SimpleUploadedFile(
+        cls.uploaded = SimpleUploadedFile(
             name='small.gif',
             content=small_gif,
             content_type='image/gif'
         )
-        cls.form_data = {
-            'text': 'Тестовый текст',
-            'group': cls.group.id,
-            'image': uploaded,
-        }
 
     @classmethod
     def tearDownClass(cls):
@@ -48,25 +42,36 @@ class PostFormTests(TestCase):
 
     def test_create_post_authorized(self):
         posts_count = Post.objects.count()
-        self.authorized_client.force_login(self.user)
+        form_data = {
+            'text': 'Тестовый текст',
+            'group': self.group.id,
+            'image': self.uploaded,
+        }
         response = self.authorized_client.post(
             reverse('new_post'),
-            data=self.form_data,
+            data=form_data,
             follow=True
         )
         post = Post.objects.last()
         self.assertRedirects(response, reverse('index'))
         self.assertEqual(Post.objects.count(), posts_count + 1)
-        self.assertEqual(post.text, self.form_data['text'])
-        self.assertEqual(post.group, self.group)
+        self.assertEqual(post.text, form_data['text'])
+        self.assertEqual(post.group.id, form_data['group'])
+        self.assertEqual(post.image.name.split('/')[-1],
+                         form_data['image'].name)
         self.assertEqual(post.author, self.user)
-        self.assertEqual(post.image, 'posts/small.gif')
 
     def test_create_post_nonauthorized(self):
         posts_count = Post.objects.count()
-        response = self.authorized_client.post(
+        client = Client()
+        form_data = {
+            'text': 'Тестовый текст',
+            'group': self.group.id,
+            'image': self.uploaded,
+        }
+        response = client.post(
             reverse('new_post'),
-            data=self.form_data,
+            data=form_data,
             follow=True
         )
         self.assertRedirects(
@@ -76,7 +81,6 @@ class PostFormTests(TestCase):
         self.assertEqual(Post.objects.count(), posts_count)
 
     def test_edit_post(self):
-        self.authorized_client.force_login(self.user)
         post = Post.objects.create(
             text='Текст поста',
             group=self.group,
@@ -84,7 +88,7 @@ class PostFormTests(TestCase):
         )
         new_form_data = {
             'text': 'Новый текст поста',
-            'group': self.form_data['group']
+            'group': self.group.id
         }
         response = self.authorized_client.post(
             reverse(

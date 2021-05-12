@@ -20,7 +20,8 @@ class PostPagesTests(TestCase):
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.user)
         cls.follower = User.objects.create_user(username='follower')
-        cls.client = Client()
+        cls.follower_client = Client()
+        cls.follower_client.force_login(cls.follower)
         small_gif = (
             b'\x47\x49\x46\x38\x39\x61\x02\x00'
             b'\x01\x00\x80\x00\x00\x00\x00\x00'
@@ -161,8 +162,7 @@ class PostPagesTests(TestCase):
 
     def test_follow(self):
         follows_count = Follow.objects.count()
-        self.client.force_login(self.follower)
-        self.client.get(
+        self.follower_client.get(
             reverse(
                 'profile_follow',
                 kwargs={'username': self.user.username}
@@ -174,21 +174,19 @@ class PostPagesTests(TestCase):
         self.assertEqual(last_follow.author, self.user)
 
     def test_follow_page(self):
-        self.client.force_login(self.follower)
-        response = self.client.get(
+        response = self.follower_client.get(
             reverse(
                 'profile_follow',
                 kwargs={'username': self.user.username}
             )
         )
-        response = self.client.get(reverse('follow_index'))
+        response = self.follower_client.get(reverse('follow_index'))
         self.check_post_context_on_page(response.context['page'][0])
 
     def test_unfollow(self):
-        self.client.force_login(self.follower)
         Follow.objects.create(author=self.post.author, user=self.follower)
         follows_count = Follow.objects.count()
-        self.client.get(
+        self.follower_client.get(
             reverse(
                 'profile_unfollow',
                 kwargs={'username': self.user.username}

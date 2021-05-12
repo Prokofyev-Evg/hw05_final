@@ -43,7 +43,8 @@ class PostsModelsTest(TestCase):
 
     def test_post_str(self):
         post = PostsModelsTest.post
-        self.assertEqual(str(post), f'{post.author} | {post.text[:15]}')
+        post_str = f'{post.author} | {post.text[:15]}'
+        self.assertEqual(str(post), post_str)
 
     def test_group_str(self):
         group = PostsModelsTest.group
